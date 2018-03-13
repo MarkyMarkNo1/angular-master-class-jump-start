@@ -4,7 +4,9 @@ import { Contact } from '../models/contact';
 import { ContactsService } from '../contacts.service';
 
 import { Subject } from 'rxjs/Subject'
-import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+
+// Import switchMap and merge just as we did with the other operators
+import { debounceTime, distinctUntilChanged, merge, switchMap } from 'rxjs/operators';
 
 @Component({
   selector: 'trm-contacts-list',
@@ -20,17 +22,16 @@ export class ContactsListComponent implements OnInit {
   constructor(private contactsService: ContactsService) {}
 
   ngOnInit () {
-    this.contacts$ = this.contactsService.getContacts();
-    this.terms$.pipe(debounceTime(400), distinctUntilChanged()).subscribe(val => {
-      this.search(val);
-    })
+    this.contacts$ = this.terms$.pipe(
+      debounceTime(400),
+      distinctUntilChanged(),
+      switchMap(term => this.contactsService.search(term)),
+      merge(this.contactsService.getContacts()),
+    );
   }
 
   trackByContactId(index, contact) {
     return contact.id;
   }
 
-  search (term) {
-    this.contacts$ = this.contactsService.search(term);
-  }
 }
